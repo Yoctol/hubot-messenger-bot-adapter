@@ -1,4 +1,4 @@
-# hubot-messenger-bot
+# hubot-messenger-bot-adapter
 
 A Hubot adapter for [Facebook Messenger Platform](https://developers.facebook.com/docs/messenger-platform/product-overview) (Bots) with zero external dependencies.
 
@@ -36,13 +36,13 @@ The adapter requires your _verification token_, and _access token_ to function. 
 ## Installation via NPM
 
 ```
-npm install --save hubot-messenger-bot
+npm install --save hubot-messenger-bot-adapter
 ```
 
-Now, run Hubot with the `messenger-bot` adapter:
+Now, run Hubot with the `messenger-bot-adapter` adapter:
 
 ```
-DEBUG=hubot-messenger-bot ./bin/hubot -a messenger-bot
+DEBUG=hubot-messenger-bot-adapter ./bin/hubot -a messenger-bot-adapter
 ```
 
 

@@ -2,7 +2,7 @@ const Adapter = require('hubot').Adapter;
 const TextMessage = require('hubot').TextMessage;
 const get = require('lodash/get');
 const chalk = require('chalk');
-const debug = require('debug')('hubot-messenger-bot');
+const debug = require('debug')('hubot-messenger-bot-adapter');
 
 class Messenger extends Adapter {
   constructor(robot) {
@@ -196,6 +196,43 @@ class Messenger extends Adapter {
     this.postData(data);
   }
 
+  sendImageQuickReplyMsg(context, url, quickReplies) {
+    const data = JSON.stringify({
+      recipient: {
+        id: context.user.id,
+      },
+      message: {
+        attachment: {
+          type: 'image',
+          payload: {
+            url,
+          },
+        },
+        quick_replies: quickReplies,
+      },
+    });
+
+    this.postData(data);
+  }
+
+  sendImageMsg(context, url) {
+    const data = JSON.stringify({
+      recipient: {
+        id: context.user.id,
+      },
+      message: {
+        attachment: {
+          type: 'image',
+          payload: {
+            url,
+          },
+        },
+      },
+    });
+
+    this.postData(data);
+  }
+
   send(envelope, para) {
     debug(chalk.red(new Date().toISOString()));
     debug(chalk.blue('trying to sending message..'));
@@ -209,8 +246,12 @@ class Messenger extends Adapter {
         return this.sendButtonMsg(envelope, text, para.buttons);
       case 'text':
         return this.sendTextMsg(envelope, text);
+      case 'image':
+        return this.sendImageMsg(envelope, text);
       case 'quick_replies':
         return this.sendQuickReplyMsg(envelope, text, para.quick_replies);
+      case 'image_quick_replies':
+        return this.sendImageQuickReplyMsg(envelope, text, para.quick_replies);
       default:
         return;
     }
