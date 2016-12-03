@@ -4,23 +4,22 @@ const get = require('lodash/get');
 const chalk = require('chalk');
 const debug = require('debug')('hubot-messenger-bot-adapter');
 
+const createUser = (userId, roomId, cb) => {
+  const user = {
+    id: userId,
+    name: '',
+    room: roomId,
+  };
+  return cb(user);
+};
+
 class Messenger extends Adapter {
   constructor(robot) {
     super();
     this.robot = robot;
     this.verifyToken = process.env.MESSENGER_VERIFY_TOKEN;
-    this.accessToken = process.env.MESSENGER_ACCESS_TOKEN
     this.apiURL = 'https://graph.facebook.com/v2.6';
     this.robot.logger.info('hubot-messenger-bot: Adapter loaded.');
-  }
-
-  createUser(userId, roomId, cb) {
-    const user = {
-      id: userId,
-      name: '',
-      room: roomId,
-    }
-    return cb(user);
   }
 
   processTextMsg(msg, text) {
@@ -29,7 +28,7 @@ class Messenger extends Adapter {
     const _mid = msg.message.mid;
     const _text = text;
 
-    this.createUser(_sender, _recipient, user => {
+    createUser(_sender, _recipient, user => {
       const message = new TextMessage(user, _text.trim(), _mid);
       message.room = _recipient;
       return this.receive(message);
@@ -42,7 +41,7 @@ class Messenger extends Adapter {
     const _mid = msg.message.mid;
     const _text = `${attachmentType}`;
 
-    this.createUser(_sender, _recipient, user => {
+    createUser(_sender, _recipient, user => {
       const message = new TextMessage(user, _text.trim(), _mid);
       message.room = _recipient;
       return this.receive(message);
@@ -54,7 +53,7 @@ class Messenger extends Adapter {
     const _recipient = msg.recipient.id;
     const _text = payload;
 
-    this.createUser(_sender, _recipient, user => {
+    createUser(_sender, _recipient, user => {
       const message = new TextMessage(user, _text.trim());
       message.room = _recipient;
       return this.receive(message);
