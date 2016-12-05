@@ -51,4 +51,3 @@ DEBUG=hubot-messenger-bot-adapter ./bin/hubot -a messenger-bot-adapter
 Variable | Default | Description
 --- | --- | ---
 `MESSENGER_VERIFY_TOKEN` | N/A | Your bot's verification token. You can obtain one when you [create a web hook](https://developers.facebook.com/docs/messenger-platform/quickstart) to receive events for a specific page.
--`MESSENGER_ACCESS_TOKEN` | N/A | Your page access token (it is based on an app, page, and user). You can find it in the _"Token Generation"_ section of your [app dashboard](https://developers.facebook.com/apps/).
