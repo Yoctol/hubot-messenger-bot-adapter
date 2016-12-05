@@ -4,39 +4,22 @@ const get = require('lodash/get');
 const chalk = require('chalk');
 const debug = require('debug')('hubot-messenger-bot-adapter');
 
+const createUser = (userId, roomId, cb) => {
+  const user = {
+    id: userId,
+    name: '',
+    room: roomId,
+  };
+  return cb(user);
+};
+
 class Messenger extends Adapter {
   constructor(robot) {
     super();
     this.robot = robot;
     this.verifyToken = process.env.MESSENGER_VERIFY_TOKEN;
-    this.accessToken = process.env.MESSENGER_ACCESS_TOKEN;
     this.apiURL = 'https://graph.facebook.com/v2.6';
     this.robot.logger.info('hubot-messenger-bot: Adapter loaded.');
-  }
-
-  subscribe() {
-    const subscribeURL = `${this.apiURL}/me/subscribed_apps?access_token=${this.accessToken}`;
-    return this.robot.http(subscribeURL).post()((err, httpRes, body) => {
-      if (err || httpRes.statusCode !== 200) {
-        this.robot.logger.error(`hubot-messenger-bot: error subscribing app to page - ${body} ${httpRes.statusCode} (${err})`);
-      }
-      this.robot.logger.info('hubot-messenger-bot: Subscribed app to page.', body);
-    });
-  }
-
-  createUser(userId, roomId, cb) {
-    const profileURL = `${this.apiURL}/${userId}?fields=first_name,last_name&access_token=${this.accessToken}`;
-    return this.robot.http(profileURL).get()((err, httpRes, body) => {
-      if (err || httpRes.statusCode !== 200) {
-        this.robot.logger.error(`hubot-messenger-bot: error getting profile - ${body} ${httpRes.statusCode} (${err})`);
-      }
-      const _user = JSON.parse(body);
-      const _userName = `${_user.first_name} ${_user.last_name}`;
-      return cb(this.robot.brain.userForId(userId, {
-        name: _userName,
-        room: roomId,
-      }));
-    });
   }
 
   processTextMsg(msg, text) {
@@ -45,8 +28,9 @@ class Messenger extends Adapter {
     const _mid = msg.message.mid;
     const _text = text;
 
-    this.createUser(_sender, _recipient, user => {
+    createUser(_sender, _recipient, user => {
       const message = new TextMessage(user, _text.trim(), _mid);
+      message.room = _recipient;
       return this.receive(message);
     });
   }
@@ -57,8 +41,9 @@ class Messenger extends Adapter {
     const _mid = msg.message.mid;
     const _text = `${attachmentType}`;
 
-    this.createUser(_sender, _recipient, user => {
+    createUser(_sender, _recipient, user => {
       const message = new TextMessage(user, _text.trim(), _mid);
+      message.room = _recipient;
       return this.receive(message);
     });
   }
@@ -68,8 +53,9 @@ class Messenger extends Adapter {
     const _recipient = msg.recipient.id;
     const _text = payload;
 
-    this.createUser(_sender, _recipient, user => {
+    createUser(_sender, _recipient, user => {
       const message = new TextMessage(user, _text.trim());
+      message.room = _recipient;
       return this.receive(message);
     });
   }
@@ -139,8 +125,8 @@ class Messenger extends Adapter {
     return;
   }
 
-  postData(data) {
-    this.robot.http(`${this.apiURL}/me/messages?access_token=${this.accessToken}`)
+  postData(data, accessToken) {
+    this.robot.http(`${this.apiURL}/me/messages?access_token=${accessToken}`)
       .header('Content-Type', 'application/json').post(data)((err, httpRes, body) => {
         if (err || httpRes.statusCode !== 200) {
           return this.robot.logger.error(`hubot-messenger-bot: error sending message - ${body} ${httpRes.statusCode} (${err})`);
@@ -149,7 +135,7 @@ class Messenger extends Adapter {
       });
   }
 
-  sendButtonMsg(context, text, buttons) {
+  sendButtonMsg(context, text, buttons, accessToken) {
     const data = JSON.stringify({
       recipient: {
         id: context.user.id,
@@ -166,10 +152,10 @@ class Messenger extends Adapter {
       },
     });
 
-    this.postData(data);
+    this.postData(data, accessToken);
   }
 
-  sendTextMsg(context, text) {
+  sendTextMsg(context, text, accessToken) {
     const data = JSON.stringify({
       recipient: {
         id: context.user.id,
@@ -179,10 +165,10 @@ class Messenger extends Adapter {
       },
     });
 
-    this.postData(data);
+    this.postData(data, accessToken);
   }
 
-  sendQuickReplyMsg(context, text, quickReplies) {
+  sendQuickReplyMsg(context, text, quickReplies, accessToken) {
     const data = JSON.stringify({
       recipient: {
         id: context.user.id,
@@ -193,10 +179,10 @@ class Messenger extends Adapter {
       },
     });
 
-    this.postData(data);
+    this.postData(data, accessToken);
   }
 
-  sendImageQuickReplyMsg(context, url, quickReplies) {
+  sendImageQuickReplyMsg(context, url, quickReplies, accessToken) {
     const data = JSON.stringify({
       recipient: {
         id: context.user.id,
@@ -212,10 +198,10 @@ class Messenger extends Adapter {
       },
     });
 
-    this.postData(data);
+    this.postData(data, accessToken);
   }
 
-  sendImageMsg(context, url) {
+  sendImageMsg(context, url, accessToken) {
     const data = JSON.stringify({
       recipient: {
         id: context.user.id,
@@ -230,10 +216,10 @@ class Messenger extends Adapter {
       },
     });
 
-    this.postData(data);
+    this.postData(data, accessToken);
   }
 
-  send(envelope, para) {
+  send(envelope, para, accessToken) {
     debug(chalk.red(new Date().toISOString()));
     debug(chalk.blue('trying to sending message..'));
     debug(chalk.blue(JSON.stringify(envelope, null, 2)));
@@ -243,15 +229,15 @@ class Messenger extends Adapter {
 
     switch (type) {
       case 'button':
-        return this.sendButtonMsg(envelope, text, para.buttons);
+        return this.sendButtonMsg(envelope, text, para.buttons, accessToken);
       case 'text':
-        return this.sendTextMsg(envelope, text);
+        return this.sendTextMsg(envelope, text, accessToken);
       case 'image':
-        return this.sendImageMsg(envelope, text);
+        return this.sendImageMsg(envelope, text, accessToken);
       case 'quick_replies':
-        return this.sendQuickReplyMsg(envelope, text, para.quick_replies);
+        return this.sendQuickReplyMsg(envelope, text, para.quick_replies, accessToken);
       case 'image_quick_replies':
-        return this.sendImageQuickReplyMsg(envelope, text, para.quick_replies);
+        return this.sendImageQuickReplyMsg(envelope, text, para.quick_replies, accessToken);
       default:
         return;
     }
@@ -264,9 +250,6 @@ class Messenger extends Adapter {
   run() {
     if (!this.verifyToken) {
       this.emit('error', new Error('You must configure the MESSENGER_VERIFY_TOKEN environment variable.'));
-    }
-    if (!this.accessToken) {
-      this.emit('error', new Error('You must configure the MESSENGER_ACCESS_TOKEN environment variable.'));
     }
 
     this.robot.router.get('/webhook/', (req, res) => {
